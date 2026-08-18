@@ -1,0 +1,50 @@
+--Để tự động hóa được thì ta phải giải quyết 2 vấn đề sau:
+
+1. Bài toán Trùng lặp dữ liệu
+
+import pandas as pd
+from sqlalchemy import create_engine, text
+
+#Điền thông tin kết nối PostgreSQL của bạn
+USERNAME = "postgres"
+PASSWORD = "YOUR_PASSWORD_HERE"  # Điền mật khẩu thật của bạn
+HOST = "localhost"
+PORT = "5432"
+DB_NAME = "TLHP_DATA"
+
+connection_string = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
+engine = create_engine(connection_string)
+
+#Đọc file CSV chứa dữ liệu mới vừa cào được
+df_new = pd.read_csv("danh_sach_danh_ngon.csv", sep=";")
+
+#LOGIC THÔNG MINH: Kiểm tra dữ liệu cũ trong Database
+try:
+    # Thử đọc bảng dữ liệu hiện tại trong Postgres lên thành một bảng Pandas
+    df_old = pd.read_sql("SELECT * FROM post_data", con=engine)
+
+    # So sánh: Giữ lại những câu nói trong df_new mà KHÔNG nằm trong df_old
+    # Chúng ta dùng cột "Câu nói" để làm thước đo chống trùng
+    df_to_insert = df_new[~df_new["Câu nói"].isin(df_old["Câu nói"])]
+
+except Exception:
+    # Nếu bảng 'post_data' chưa từng tồn tại (chạy lần đầu), thì toàn bộ dữ liệu là mới
+    df_to_insert = df_new
+
+#Nạp phần dữ liệu mới tinh vào Database
+if not df_to_insert.empty:
+    # if_exists='append': CHỈ CHÈN THÊM VÀO CUỐI BẢNG, không xóa dữ liệu cũ
+    df_to_insert.to_sql("post_data", con=engine, if_exists="append", index=False)
+    print(f"🚀 Đã cập nhật thêm {len(df_to_insert)} câu danh ngôn mới vào PostgreSQL!")
+else:
+    print("💤 Không có dữ liệu mới nào được tìm thấy. Hệ thống giữ nguyên.")
+
+
+2. Bài toán Tự động kích hoạt:
+Sử dụng phần mềm có trên local để set chu kỳ hoạt động
+
+-- Crawl dữ liệu từ các trang có JS thì dùng combo:
+- BeautyfulSoup
+- Selenium
+--> ý nghĩa: Selenium dùng để fake người dùng, tránh chặn từ js.
+ Sau khi lấy được HTML thì dùng bs4 để lấy dữ liệu như bình thường.

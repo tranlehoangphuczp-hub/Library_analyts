@@ -1,0 +1,9 @@
+# Bỏ qua môi trường ảo Python
+.venv/
+venv/
+ENV/
+
+# Bỏ qua thư mục cấu hình của IDE
+.idea/
+*.pyc
+__pycache__/
